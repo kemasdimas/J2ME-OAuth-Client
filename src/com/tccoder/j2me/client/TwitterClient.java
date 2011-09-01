@@ -1,7 +1,7 @@
 package com.tccoder.j2me.client;
 
 
-import com.tccoder.j2me.rms.RmsStorage;
+import com.tccoder.j2me.rms.TokenStorage;
 import java.io.IOException;
 import java.util.Hashtable;
 import net.oauth.j2me.BadTokenStateException;
@@ -77,12 +77,19 @@ public class TwitterClient {
      * @throws BadTokenStateException
      * @throws OAuthServiceProviderException
      */
-    public AccessToken fetchNewAccessToken() throws BadTokenStateException, OAuthServiceProviderException {
+    public AccessToken fetchAccessToken() throws BadTokenStateException, OAuthServiceProviderException {
         if (verifier == null || verifier.length() == 0) {
             throw new BadTokenStateException("No verifier set");
         }
 
-        return fetchNewAccessToken(verifier);
+        if (isAuthorized()) {
+            final String[] tokens = TokenStorage.getInstance().getAccessToken();
+            access = new AccessToken(tokens[0], tokens[1]);
+
+            return access;
+        } else {
+            return fetchNewAccessToken(verifier);
+        }
     }
 
     /**
@@ -97,14 +104,14 @@ public class TwitterClient {
         }
 
         System.out.println("CHECK STORED AUTH");
-        if (!RmsStorage.getInstance().isAuthorized())
-            RmsStorage.getInstance().saveToken(access.getToken(), access.getSecret());
+        if (!TokenStorage.getInstance().isAuthorized())
+            TokenStorage.getInstance().saveToken(access.getToken(), access.getSecret());
         else
             System.out.println("AUTH: User already authorized.");
     }
 
     public boolean isAuthorized() {
-        return RmsStorage.getInstance().isAuthorized();
+        return TokenStorage.getInstance().isAuthorized();
     }
 
     /**
@@ -131,7 +138,7 @@ public class TwitterClient {
 
     /**
      * Parse authorization page callback to get access token verifier, recommended
-     * to call fetchNewAccessToken() after this function
+     * to call fetchAccessToken() after this function
      *
      * @param authorizeResult
      */
