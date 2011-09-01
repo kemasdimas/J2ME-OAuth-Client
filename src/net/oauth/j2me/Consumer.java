@@ -18,7 +18,6 @@ package net.oauth.j2me;
 
 import java.util.Hashtable;
 import java.io.*;
-import net.oauth.j2me.OAuthBadDataException;
 import net.oauth.j2me.token.*;
 
 public class Consumer { 

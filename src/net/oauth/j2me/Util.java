@@ -8,6 +8,7 @@
  */
 
 package net.oauth.j2me;
+import gr.fire.util.Log;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -274,7 +275,7 @@ public class Util {
 
     public static final String getViaHttpsConnection(String url) throws IOException, OAuthServiceProviderException {
         HttpsConnection c = null;
-        int rc;
+        int rc = 0;
         String respBody = new String(""); // return empty string on bad things
         // TODO -- better way to handle unexpected responses
 
@@ -290,7 +291,7 @@ public class Util {
             c.setRequestMethod(HttpConnection.GET);
             c.setRequestProperty("User-Agent", "Profile/MIDP-2.0 Configuration/CLDC-1.0");
             c.setRequestProperty("Cache-Control", "no-store");
-            c.setRequestProperty("Connection", "close"); // not sure this is a good idea, but HTTP/1.0 might be less error-prone, some clients have trouble with chunked responses
+//            c.setRequestProperty("Connection", "close"); // not sure this is a good idea, but HTTP/1.0 might be less error-prone, some clients have trouble with chunked responses
             System.out.println("UTIL -- connection open");
             
             // Getting the response code will open the connection,
@@ -308,6 +309,8 @@ public class Util {
             respBody=new String(data);
         } catch (ClassCastException e) {
             throw new IllegalArgumentException("Not an HTTP URL");
+        } catch (Exception e) {
+            Log.logError(e.getMessage(), e);
         } finally {
             if (c != null)
                 c.close();

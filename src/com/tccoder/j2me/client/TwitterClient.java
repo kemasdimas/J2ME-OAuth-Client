@@ -1,11 +1,11 @@
 package com.tccoder.j2me.client;
 
 
+import com.tccoder.j2me.rms.RmsStorage;
 import java.io.IOException;
 import java.util.Hashtable;
 import net.oauth.j2me.BadTokenStateException;
 import net.oauth.j2me.Consumer;
-import net.oauth.j2me.OAuthMessage;
 import net.oauth.j2me.OAuthServiceProviderException;
 import net.oauth.j2me.signature.HMACSHA1Signature;
 import net.oauth.j2me.token.AccessToken;
@@ -21,13 +21,13 @@ import net.oauth.j2me.token.RequestToken;
  * @author Dimas
  */
 public class TwitterClient {
-    private static final String CONSUMER_TOKEN ="YOUR_TOKEN";
-    private static final String CONSUMER_SECRET ="YOUR_TOKEN_SECRET";
+    private static final String CONSUMER_TOKEN ="";
+    private static final String CONSUMER_SECRET ="";
 
     private static final String REQUEST_URL = "https://api.twitter.com/oauth/request_token";
     private static final String AUTHORIZE_URL = "https://api.twitter.com/oauth/authorize";
     private static final String ACCESS_URL = "https://api.twitter.com/oauth/access_token";
-    public static final String CALLBACK_URL = "YOUR_CALLBACK_URL";
+    public static final String CALLBACK_URL = "";
 
     private static final String UPDATE_STATUS_URL = "https://api.twitter.com/1/statuses/update.json";
 
@@ -86,6 +86,28 @@ public class TwitterClient {
     }
 
     /**
+     * Store retrieved access token to RMS to provide authentication for other
+     * request
+     *
+     * @throws BadTokenStateException
+     */
+    private void storeAccessToken() throws BadTokenStateException {
+        if (access == null) {
+            throw new BadTokenStateException("No access token set");
+        }
+
+        System.out.println("CHECK STORED AUTH");
+        if (!RmsStorage.getInstance().isAuthorized())
+            RmsStorage.getInstance().saveToken(access.getToken(), access.getSecret());
+        else
+            System.out.println("AUTH: User already authorized.");
+    }
+
+    public boolean isAuthorized() {
+        return RmsStorage.getInstance().isAuthorized();
+    }
+
+    /**
      * Fetch new access token from twitter server
      *
      * @param verifier
@@ -101,6 +123,8 @@ public class TwitterClient {
         access = consumer.getAccessToken(ACCESS_URL, request, verifier);
         request = null;
         this.verifier = null;
+
+        storeAccessToken();
 
         return access;
     }
