@@ -26,22 +26,26 @@ import com.tccoder.j2me.client.TwitterClient;
 import gr.fire.browser.Browser;
 import gr.fire.browser.util.Page;
 import gr.fire.browser.util.PageListener;
+import gr.fire.core.CommandListener;
+import gr.fire.core.Component;
 import gr.fire.core.Container;
 import gr.fire.core.FireScreen;
 import gr.fire.core.Panel;
 import gr.fire.core.SplashScreen;
+import gr.fire.ui.InputComponent;
 import gr.fire.util.Log;
 
 import java.io.IOException;
 import java.util.Hashtable;
 
 import javax.microedition.io.HttpConnection;
+import javax.microedition.lcdui.Command;
 import javax.microedition.lcdui.Display;
+import javax.microedition.lcdui.Displayable;
 import javax.microedition.midlet.MIDlet;
 import javax.microedition.midlet.MIDletStateChangeException;
 import net.oauth.j2me.BadTokenStateException;
 import net.oauth.j2me.OAuthServiceProviderException;
-
 
 /**
  * This application demonstrates the use of the Browser to access remote and local web pages.
@@ -63,7 +67,7 @@ import net.oauth.j2me.OAuthServiceProviderException;
  * @author padeler
  *
  */
-public class BrowserTest extends MIDlet implements PageListener {
+public class BrowserTest extends MIDlet implements PageListener, CommandListener {
     private TwitterClient twitterOAuth = TwitterClient.getInstance();
 
     private Browser b;
@@ -79,8 +83,7 @@ public class BrowserTest extends MIDlet implements PageListener {
             // that the application is loading, also helps to avoid an annoing bug on some phones
             // that cannot switch to fullscreen canvas if there not a canvas already on the screen
             Display disp = Display.getDisplay(this);
-
-
+            
             // now continue with the application initialization.
             fireScreen = FireScreen.getScreen(Display.getDisplay(this));
             fireScreen.setFullScreenMode(true);
@@ -89,15 +92,13 @@ public class BrowserTest extends MIDlet implements PageListener {
 //            FireScreen.setTheme(new FireTheme("file://theme.properties"));
 
             b = new Browser();
-            b.getHttpClient().loadCookies("testingcookies"); // load previously stored cookies. This way we can keep session info across application invocations. see the javadoc for more info.
-            b.setPageListener(this); // i want to be notified when a request to loadPageAsync completes. The default method that handles link and form events in the browser calls the loadPageAsync.
+            b.getHttpClient().loadCookies("testingcookies");
+
+            b.setListener(this);
+            b.setPageListener(this);
 
             showMainMenu(); // load the main menu.
-
-            // ok so far we displayed the main menu. Now lets do something more fancy.
-
-            // Ok Display an alert. FireScreen.showAlert is a utility method for displaying alerts fast and easy.
-//            fireScreen.showAlert(Lang.get("Welcome to the BrowserTest. Demonstrating the capabilities of the Fire2.3 XHTML basic component."),Alert.TYPE_INFO,Alert.USER_SELECTED_OK,null,null);
+            
         } catch(Throwable e) {
             Log.logError("Application Failed to start",e);
         }
@@ -108,11 +109,13 @@ public class BrowserTest extends MIDlet implements PageListener {
             twitterOAuth.fetchNewRequestToken();
             final String authUrl = twitterOAuth.getAuthorizeUrl();
 
+            System.out.println("[AUTH URL] " + authUrl);
+
             Page p = b.loadPage(authUrl, HttpConnection.GET, null, null); // this will load the first screen.
             Container c = p.getPageContainer(); // the page is rendered in a container
 
             // create a panel for the container
-            Panel mainPanel = new Panel(c, Panel.VERTICAL_SCROLLBAR | Panel.HORIZONTAL_SCROLLBAR,true);
+            Panel mainPanel = new Panel(c, Panel.VERTICAL_SCROLLBAR | Panel.HORIZONTAL_SCROLLBAR, true);
             fireScreen.setCurrent(mainPanel);
         } catch(Exception e) {
             Log.logError("Failed to load main page.",e);
@@ -161,12 +164,14 @@ public class BrowserTest extends MIDlet implements PageListener {
     }
 
     public void pageLoadProgress(String url,String message, byte state, int percent) {
-        if (state == PageListener.PAGE_LOAD_START && url.startsWith(TwitterClient.CALLBACK_URL)) {
+        System.out.println("[LOADING URL] " + url);
 
+        if (state == PageListener.PAGE_LOAD_START && url.startsWith(TwitterClient.CALLBACK_URL)) {
+            System.out.println("PARSING!!!!");
             twitterOAuth.parseAuthorizeResult(url);
             try {
-                twitterOAuth.fetchNewAccessToken();
-                String res = twitterOAuth.updateStatus("PUT YOUR TEST STATUS HERE");
+                twitterOAuth.fetchNewAccessToken().getSecret();
+//                String res = twitterOAuth.updateStatus("PUT YOUR TEST STATUS HERE");
             } catch (BadTokenStateException ex) {
             } catch (OAuthServiceProviderException ex) {
             } catch (Exception ex) {
@@ -174,5 +179,19 @@ public class BrowserTest extends MIDlet implements PageListener {
         } else {
             b.pageLoadProgress(url,message,state,percent); // use the default implementation for gauge handling.
         }
+    }
+
+    public void commandAction(javax.microedition.lcdui.Command cmd, Component c)
+    {
+        if (c instanceof InputComponent && ((InputComponent) c).getType() == InputComponent.SUBMIT)
+        {
+            ((gr.fire.browser.util.Command)cmd).getForm().submit((InputComponent) c);
+            return;
+        }
+        
+        b.commandAction(cmd,c);
+    }
+
+    public void commandAction(Command c, Displayable d) {
     }
 }
